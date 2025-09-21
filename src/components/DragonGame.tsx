@@ -17,6 +17,9 @@ interface GameState {
   clickPower: number;
   autoEarn: number;
   totalClicks: number;
+  energy: number;
+  maxEnergy: number;
+  lastEnergyUpdate: number;
 }
 
 const DragonGame = () => {
@@ -30,13 +33,18 @@ const DragonGame = () => {
     },
     clickPower: 1,
     autoEarn: 0,
-    totalClicks: 0
+    totalClicks: 0,
+    energy: 300,
+    maxEnergy: 300,
+    lastEnergyUpdate: Date.now()
   });
 
   const [activeTab, setActiveTab] = useState<'home' | 'upgrade' | 'shop' | 'quests' | 'rating' | 'friends'>('home');
   const [particles, setParticles] = useState<Array<{id: number, x: number, y: number}>>([]);
 
   const handleDragonClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (gameState.energy <= 0) return;
+    
     const rect = event.currentTarget.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
@@ -47,7 +55,8 @@ const DragonGame = () => {
         ...prev.dragon,
         coins: prev.dragon.coins + prev.clickPower
       },
-      totalClicks: prev.totalClicks + 1
+      totalClicks: prev.totalClicks + 1,
+      energy: Math.max(0, prev.energy - 1)
     }));
 
     const particleId = Date.now();
@@ -142,6 +151,35 @@ const DragonGame = () => {
       }));
     }
   }, [gameState.dragon.level]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const timeDiff = now - gameState.lastEnergyUpdate;
+      const energyToRestore = Math.floor(timeDiff / (2 * 60 * 60 * 1000 / gameState.maxEnergy));
+      
+      if (energyToRestore > 0 && gameState.energy < gameState.maxEnergy) {
+        setGameState(prev => ({
+          ...prev,
+          energy: Math.min(prev.maxEnergy, prev.energy + energyToRestore),
+          lastEnergyUpdate: now
+        }));
+      }
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [gameState.energy, gameState.lastEnergyUpdate, gameState.maxEnergy]);
+
+  const getEnergyTimeLeft = () => {
+    if (gameState.energy >= gameState.maxEnergy) return '';
+    
+    const energyPerMs = gameState.maxEnergy / (2 * 60 * 60 * 1000);
+    const msToFull = (gameState.maxEnergy - gameState.energy) / energyPerMs;
+    const hours = Math.floor(msToFull / (60 * 60 * 1000));
+    const minutes = Math.floor((msToFull % (60 * 60 * 1000)) / (60 * 1000));
+    
+    return hours > 0 ? `${hours}ч ${minutes}м` : `${minutes}м`;
+  };
 
   const tabs = [
     { id: 'home', name: 'Главная', icon: 'Home' },
@@ -361,6 +399,61 @@ const DragonGame = () => {
                 </div>
               </Card>
             </div>
+
+            {/* Energy Bar */}
+            <Card className="p-4 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 relative overflow-hidden">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-2">
+                  <Icon name="Zap" size={20} className="text-blue-400" />
+                  <span className="font-semibold text-blue-400">Энергия</span>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {gameState.energy}/{gameState.maxEnergy}
+                  {gameState.energy < gameState.maxEnergy && (
+                    <span className="ml-2 text-xs text-blue-300">
+                      Восстановится через: {getEnergyTimeLeft()}
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              <div className="relative">
+                <div className="w-full bg-muted/50 rounded-full h-3 relative overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 rounded-full transition-all duration-300 ease-out relative"
+                    style={{
+                      width: `${(gameState.energy / gameState.maxEnergy) * 100}%`
+                    }}
+                  >
+                    {/* Энергетический эффект */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-float rounded-full" />
+                  </div>
+                  
+                  {/* Деления на полосе */}
+                  {Array.from({ length: 4 }, (_, i) => (
+                    <div
+                      key={i}
+                      className="absolute top-0 h-full w-0.5 bg-background/30"
+                      style={{ left: `${(i + 1) * 20}%` }}
+                    />
+                  ))}
+                </div>
+                
+                {/* Предупреждение о низкой энергии */}
+                {gameState.energy <= 30 && (
+                  <div className="mt-2 text-center text-red-400 text-sm animate-pulse">
+                    ⚠️ Низкий уровень энергии!
+                  </div>
+                )}
+                
+                {/* Энергия закончилась */}
+                {gameState.energy <= 0 && (
+                  <div className="mt-2 text-center text-red-500 text-sm font-semibold animate-pulse">
+                    🔋 Энергия истощена! Подождите восстановления
+                  </div>
+                )}
+              </div>
+            </Card>
           </div>
         )}
 
