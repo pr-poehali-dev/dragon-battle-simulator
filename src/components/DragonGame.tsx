@@ -3,6 +3,7 @@ import { GameState, TabType, Particle } from './game/types';
 import GameHeader from './game/GameHeader';
 import DragonDisplay from './game/DragonDisplay';
 import StatsCards from './game/StatsCards';
+import EnergyBar from './game/EnergyBar';
 import UpgradeTab from './game/UpgradeTab';
 import NavigationTabs from './game/NavigationTabs';
 import PlaceholderTab from './game/PlaceholderTab';
@@ -147,6 +148,7 @@ const DragonGame = () => {
               particles={particles} 
               onDragonClick={handleDragonClick} 
             />
+            <EnergyBar gameState={gameState} />
             <StatsCards gameState={gameState} />
           </div>
         )}
