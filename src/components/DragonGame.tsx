@@ -140,7 +140,7 @@ const DragonGame = () => {
     <div className="min-h-screen bg-gradient-to-b from-background via-background/90 to-card">
       <GameHeader gameState={gameState} />
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-6 pb-24">
         {activeTab === 'home' && (
           <div className="space-y-6">
             <DragonDisplay 
